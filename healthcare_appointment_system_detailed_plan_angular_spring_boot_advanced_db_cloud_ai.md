@@ -1,6 +1,6 @@
 # Healthcare Appointment System with AI Symptom Checker — Detailed Implementation Guide
 
-> Full, step-by-step Markdown guide targeted at a production-grade implementation using **Angular** (or AngularJS fallback), **Spring Boot**, **PostgreSQL + advanced DB components**, and **cloud AI services**. Focuses on real-time problems, advanced tooling, security, DevOps, monitoring, and ML lifecycle.
+> Full, step-by-step Markdown guide targeted at a production-grade implementation using **Angular** (or AngularJS fallback), **Spring Boot**, **PostgreSQL + advanced DB components**, and **cloud AI services**. Focuses on real-time problems, advanced tooling, security, DevOps, monitoring, and ML lifecycles.
 
 ---
 
