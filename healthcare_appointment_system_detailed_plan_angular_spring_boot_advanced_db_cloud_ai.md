@@ -97,13 +97,14 @@ Primary non-functional goals: availability (99.9%), latency (<200ms for API read
 
 ### Core relational (Postgres)
 
-- `users` (id PK, role, contact, hashed_password, status)  
-- `patients` (id FK users, demographics JSONB, insurance_id, consent_flags JSONB)  
-- `providers` (id FK users, license_info JSONB, specialties ARRAY, locations JSONB with PostGIS coords)  
-- `clinics` (id, address, timezone, rooms)  
-- `appointments` (id, patient_id, provider_id, clinic_id, start_ts, end_ts, status, metadata JSONB)  
+- `users` (id PK, role, contact, hashed_password, status)
+- `patients` (id FK users, demographics JSONB, insurance_id, consent_flags JSONB)
+- `providers` (id FK users, license_info JSONB, specialties ARRAY, locations JSONB with PostGIS coords)
+- `clinics` (id, address, timezone, rooms)
+- `appointments` (id, patient_id, provider_id, clinic_id, start_ts, end_ts, status, metadata JSONB)
 
 **Design tactics:**
+
 - Use `JSONB` for flexible data (e.g., medical history) but keep critical columns normalized for transactional queries.
 - Use `RLS` (Row Level Security) in Postgres to enforce data access rules per tenant/role.
 
@@ -134,14 +135,17 @@ Primary non-functional goals: availability (99.9%), latency (<200ms for API read
 Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 
 1. **Rule-based fast path**
+
    - For obvious emergencies (e.g., chest pain + shortness of breath) return immediate high urgency.
    - Implement as deterministic checks on the frontend/backend for near-zero latency.
 
 2. **ML model (triage classifier)**
+
    - Input: structured Q&A + free-text symptom description + patient metadata (age, chronic conditions).
    - Output: triage label (low/medium/high), suggested specialties, confidence score, recommended next steps.
 
 3. **Similarity-based retrieval**
+
    - Use embeddings to find similar past cases and show clinician-curated suggestions.
 
 4. **Explainability & safety**
@@ -161,6 +165,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 - **Azure ML:** integrated with Azure services.
 
 **Workflow:**
+
 1. Feature engineering pipelines in batch (Beam/Dataflow or Spark).
 2. Register dataset & feature definitions in Feature Store.
 3. Train & validate model using managed training clusters.
@@ -175,6 +180,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 ### Problem: Double-booking / concurrent slot reservations
 
 **Solution:**
+
 - Use a combined approach: optimistic locking + distributed locks.
 - Implementation: Have a `slots` table (materialized) with `status` column. When user initiates booking, `SET status = 'held'` with a TTL using Redis (or database row with `held_until` timestamp). Use transactions to confirm and atomically set `status = 'booked'`.
 - Alternatively use **advisory locks** in Postgres when reserving a provider-slot pair.
@@ -182,6 +188,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 ### Problem: High read load for search/calendar
 
 **Solution:**
+
 - Cache availability & frequently-read provider profiles in Redis.
 - Use materialized views for aggregated calendar data and refresh asynchronously.
 - Use CDN and edge caching for static assets.
@@ -189,6 +196,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 ### Problem: Latency in ML inference
 
 **Solution:**
+
 - Implement a fast rule-based fallback for initial triage.
 - Serve models on autoscaled low-latency endpoints; use model quantization / ONNX to optimize inference times.
 - Use asynchronous enrichment: return immediate result, then push improved result to the client when ready.
@@ -196,6 +204,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 ### Problem: Data privacy & regulatory constraints
 
 **Solution:**
+
 - Encrypt data at rest and in transit. Use KMS (AWS KMS / GCP KMS / Azure Key Vault).
 - Implement fine-grained RBAC and RLS in Postgres.
 - Keep audit logs immutable (append-only in Kafka + cold storage to S3 with WORM if required).
@@ -295,29 +304,35 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 ## 14. Roadmap & milestones (8 months suggested)
 
 **Month 1-2 — Foundations**
+
 - Finalize scope, wireframes, and API contracts.
 - Implement auth, user management, and provider profiles.
 - Set up infra (Terraform), GitOps skeleton, and Kubernetes cluster.
 
 **Month 3-4 — Scheduling MVP**
+
 - Implement scheduling, slot materialization, booking flow with optimistic locking.
 - Build Angular pages for search & booking.
 - Integrate notifications for booking confirmations.
 
 **Month 5 — Symptom Checker MVP**
+
 - Implement rule-based triage and simple ML classifier (LightGBM) offline.
 - Build interactive symptom UI; wire to backend rule-based triage.
 
 **Month 6 — ML improvements & Cloud**
+
 - Push model training to cloud (Vertex/SageMaker), deploy endpoint.
 - Integrate embeddings and similarity search (pgvector).
 - Add explainability outputs.
 
 **Month 7 — Hardening & Compliance**
+
 - Implement audit trails, consent management, RLS, and encryption.
 - Conduct security review and load testing.
 
 **Month 8 — Polish & Scale**
+
 - Analytics dashboards, A/B testing for triage, mobile PWA or React Native companion app.
 - Finalize documentation and demo for stakeholders.
 
@@ -358,7 +373,7 @@ Combine **rules**, **knowledge-graph / clinical ontology**, and **ML models**:
 This doc is intentionally broad and practical: pick a sensible MVP, keep complexity incremental, and add advanced features (PGVector, Vertex AI, Kafka) once the core booking flows and security are solid. Aim for transparency in AI outputs (explainability) and make sure clinicians review any model outputs before going live in production.
 
 Good luck, and if you want, I can now:
+
 - produce a condensed 8-month sprint plan with weekly tasks, or
 - generate boilerplate OpenAPI specs and database schemas (no implementation code), or
 - draft the exact Terraform + Helm skeleton needed to bootstrap infra.
-
